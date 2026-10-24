@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>บันทึกการดูอนิเมะและอ่านมังงะ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F6; --surface:#FFFFFF; --ink:#1A1E2D; --muted:#5B6277; --line:#D6DBE6; --soft:#E2E6EF;
+  --anime:#3949D6; --manga:#D3343C; --ok:#178A5E;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#11131D; --surface:#1A1D2B; --ink:#E7E9F1; --muted:#9BA2B8; --line:#2B2F44; --soft:#242840;
+    --anime:#8190FF; --manga:#FF6E74; --ok:#3CCB8F; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11131D; --surface:#1A1D2B; --ink:#E7E9F1; --muted:#9BA2B8; --line:#2B2F44; --soft:#242840;
+  --anime:#8190FF; --manga:#FF6E74; --ok:#3CCB8F; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 "IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3,.display{font-family:"Mitr","IBM Plex Sans Thai",system-ui,sans-serif;font-weight:500;line-height:1.3;margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--anime);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 64px}
+
+/* hero */
+.hero{padding:8px 0 18px}
+.hero h1{font-size:1.65rem}
+.hero p{margin:4px 0 14px;color:var(--muted)}
+.heat-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px 10px}
+.heat-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.streak{font-family:"Mitr",sans-serif;font-size:1.15rem}
+.streak b{font-size:1.9rem;font-weight:600;color:var(--anime);margin-right:4px}
+.heat-scroll{overflow-x:auto;padding-bottom:4px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);grid-auto-columns:12px;gap:3px;width:max-content}
+.heat span{border-radius:3px;background:var(--soft)}
+.heat span[data-l="1"]{background:color-mix(in srgb,var(--anime) 30%,var(--soft))}
+.heat span[data-l="2"]{background:color-mix(in srgb,var(--anime) 55%,var(--soft))}
+.heat span[data-l="3"]{background:color-mix(in srgb,var(--anime) 78%,var(--soft))}
+.heat span[data-l="4"]{background:var(--anime)}
+.heat span.empty{background:transparent}
+.legend{display:flex;align-items:center;gap:4px;justify-content:flex-end;font-size:.78rem;color:var(--muted);margin-top:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* tabs */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:flex;gap:4px;padding:10px 0;margin-bottom:8px;overflow-x:auto}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:999px;color:var(--muted);white-space:nowrap;font-weight:500}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
+.panel[hidden]{display:none}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.toolbar input[type=search]{flex:1 1 180px;min-width:0;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:8px 12px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--soft);color:var(--ink);font-weight:600}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:10px;font-weight:500}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.danger{color:var(--manga);border-color:color-mix(in srgb,var(--manga) 40%,var(--line))}
+.btn.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 40%,var(--line))}
+.btn.small{padding:6px 11px;font-size:.9rem}
+
+/* items */
+.list{display:grid;gap:12px}
+.item{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--anime);border-radius:12px;padding:14px 14px 12px}
+.item.manga{border-left-color:var(--manga)}
+.item h3{font-size:1.08rem;word-break:break-word}
+.item h3 a{color:inherit}
+.kind{font-size:.8rem;font-weight:600;color:var(--anime)}
+.item.manga .kind{color:var(--manga)}
+.prog{margin:10px 0 6px;font-size:.92rem}
+.bar{height:6px;background:var(--soft);border-radius:4px;overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;background:var(--anime)}
+.item.manga .bar i{background:var(--manga)}
+.meta{font-size:.84rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 14px}
+.actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.running{background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,var(--line))}
+.empty-state{text-align:center;padding:40px 16px;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:12px}
+.empty-state .btn{margin-top:10px}
+
+/* table */
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:.84rem}
+th button{border:0;background:none;padding:0;font-weight:600;color:inherit}
+th button[data-dir]::after{content:attr(data-dir);margin-left:4px}
+tr:last-child td{border-bottom:0}
+td.title{white-space:normal;min-width:160px;font-weight:500}
+.status{font-size:.82rem;padding:2px 8px;border-radius:999px;background:var(--soft)}
+.status.done{color:var(--ok)}
+.status.dropped{color:var(--manga)}
+
+/* stats */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.card .v{font-family:"Mitr",sans-serif;font-size:1.35rem;font-weight:500}
+.card .l{font-size:.84rem;color:var(--muted)}
+.chart-box{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.chart-scroll{overflow-x:auto}
+.chart{display:flex;align-items:flex-end;gap:6px;height:210px;min-width:max-content;padding-top:18px}
+.col{display:flex;flex-direction:column;align-items:center;width:34px;height:100%;justify-content:flex-end}
+.col .n{font-size:.75rem;color:var(--muted);height:16px}
+.stack{width:22px;display:flex;flex-direction:column-reverse;border-radius:4px 4px 0 0;overflow:hidden;background:var(--soft);min-height:2px}
+.stack .a{background:var(--anime)} .stack .m{background:var(--manga)}
+.col .x{font-size:.72rem;color:var(--muted);margin-top:4px;white-space:nowrap}
+.key{display:flex;gap:14px;font-size:.84rem;color:var(--muted);margin-top:8px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+h2{font-size:1.15rem;margin:22px 0 10px}
+
+/* dialog */
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(440px,calc(100% - 24px));max-height:calc(100% - 24px)}
+dialog::backdrop{background:rgb(10 12 20 / .5)}
+.dlg{padding:18px}
+.dlg h2{margin:0 0 12px}
+.field{display:block;margin-bottom:10px}
+.field span{display:block;font-size:.86rem;color:var(--muted);margin-bottom:3px}
+.field input,.field textarea{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg-foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.sub{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.sub p{margin:0 0 8px;font-size:.88rem;color:var(--muted)}
+.inline{display:flex;gap:8px}
+.inline input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.92rem;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100% - 32px)}
+.toast.show{opacity:1}
+.sync{font-size:.8rem;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>บันทึกการดูอนิเมะและอ่านมังงะ</h1>
+    <p>กด +1 ทุกครั้งที่ดูหรืออ่านจบหนึ่งตอน แล้วตารางกิจกรรมจะเติมสีให้เอง</p>
+    <div class="heat-box">
+      <div class="heat-head">
+        <div class="streak" id="streak"></div>
+        <div class="sync" id="sync">บันทึกในเครื่องนี้</div>
+      </div>
+      <div class="heat-scroll" id="heatScroll"><div class="heat" id="heat"></div></div>
+      <div class="legend">น้อย <i style="background:var(--soft)"></i><i data-l style="background:color-mix(in srgb,var(--anime) 30%,var(--soft))"></i><i style="background:color-mix(in srgb,var(--anime) 55%,var(--soft))"></i><i style="background:color-mix(in srgb,var(--anime) 78%,var(--soft))"></i><i style="background:var(--anime)"></i> มาก</div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="list" aria-selected="true">กำลังติดตาม</button>
+    <button role="tab" data-tab="table" aria-selected="false">ตารางวันเริ่ม</button>
+    <button role="tab" data-tab="stats" aria-selected="false">สถิติ</button>
+    <button role="tab" data-tab="history" aria-selected="false">ประวัติ</button>
+  </nav>
+
+  <section class="panel" id="p-list">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="ค้นหาชื่อเรื่อง" aria-label="ค้นหาชื่อเรื่อง">
+      <div class="seg" id="filter">
+        <button data-f="all" aria-pressed="true">ทั้งหมด</button>
+        <button data-f="anime" aria-pressed="false">อนิเมะ</button>
+        <button data-f="manga" aria-pressed="false">มังงะ</button>
+      </div>
+      <button class="btn primary" id="addBtn">เพิ่มเรื่อง</button>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+
+  <section class="panel" id="p-table" hidden>
+    <div class="table-wrap"><table>
+      <thead><tr>
+        <th><button data-sort="title">ชื่อเรื่อง</button></th>
+        <th><button data-sort="type">ประเภท</button></th>
+        <th><button data-sort="added">วันเริ่ม</button></th>
+        <th><button data-sort="ended">วันจบหรือเลิก</button></th>
+        <th><button data-sort="status">สถานะ</button></th>
+        <th><button data-sort="days">จำนวนวัน</button></th>
+        <th><button data-sort="mins">เวลารวม</button></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </section>
+
+  <section class="panel" id="p-stats" hidden>
+    <div class="cards" id="cards"></div>
+    <div class="toolbar">
+      <div class="seg" id="period">
+        <button data-p="day" aria-pressed="true">รายวัน</button>
+        <button data-p="month" aria-pressed="false">รายเดือน</button>
+        <button data-p="year" aria-pressed="false">รายปี</button>
+      </div>
+      <div class="seg" id="metric">
+        <button data-m="titles" aria-pressed="true">จำนวนเรื่อง</button>
+        <button data-m="eps" aria-pressed="false">จำนวนตอน</button>
+        <button data-m="mins" aria-pressed="false">นาที</button>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-scroll" id="chartScroll"><div class="chart" id="chart"></div></div>
+      <div class="key"><span><i style="background:var(--anime)"></i>อนิเมะ</span><span><i style="background:var(--manga)"></i>มังงะ</span></div>
+    </div>
+    <h2>ใช้เวลากับเรื่องไหนมากที่สุด</h2>
+    <div class="table-wrap"><table style="min-width:420px"><thead><tr><th>ชื่อเรื่อง</th><th>ประเภท</th><th>ตอนที่บันทึก</th><th>เวลารวม</th></tr></thead><tbody id="topBody"></tbody></table></div>
+  </section>
+
+  <section class="panel" id="p-history" hidden>
+    <div class="list" id="hist"></div>
+    <h2>สำรองข้อมูล</h2>
+    <div class="toolbar">
+      <button class="btn" id="exportBtn">ส่งออกเป็นไฟล์ JSON</button>
+      <label class="btn" for="importFile" style="display:inline-block">นำเข้าไฟล์ JSON</label>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </section>
+</div>
+
+<dialog id="itemDlg"><form class="dlg" id="itemForm" method="dialog">
+  <h2 id="dlgTitle">เพิ่มเรื่อง</h2>
+  <label class="field"><span>ชื่อเรื่อง</span><input name="title" required maxlength="160"></label>
+  <div class="field"><span>ประเภท</span>
+    <div class="seg" id="typeSeg"><button type="button" data-t="anime" aria-pressed="true">อนิเมะ</button><button type="button" data-t="manga" aria-pressed="false">มังงะ</button></div>
+  </div>
+  <div class="row2">
+    <label class="field"><span id="curLbl">ตอนล่าสุดที่ดู</span><input name="cur" type="number" min="0" inputmode="numeric" value="0"></label>
+    <label class="field"><span>ทั้งหมดกี่ตอน (ถ้าทราบ)</span><input name="total" type="number" min="0" inputmode="numeric"></label>
+  </div>
+  <label class="field"><span>ลิงก์ (ไม่บังคับ)</span><input name="link" type="url" placeholder="https://"></label>
+  <label class="field"><span>หมายเหตุ</span><textarea name="note" rows="2"></textarea></label>
+  <div class="dlg-foot">
+    <button type="button" class="btn" data-close>ยกเลิก</button>
+    <button type="submit" class="btn primary" id="saveBtn">บันทึก</button>
+  </div>
+  <div class="sub" id="editExtra" hidden>
+    <p>เพิ่มเวลาที่ดูหรืออ่านเอง (นาที)</p>
+    <div class="inline"><input id="manualMin" type="number" min="1" inputmode="numeric" placeholder="เช่น 24"><button type="button" class="btn" id="addMinBtn">เพิ่มเวลา</button></div>
+    <p style="margin-top:12px">ย้ายเรื่องนี้ไปที่ประวัติ สถิติจะยังเก็บไว้</p>
+    <div class="inline"><button type="button" class="btn ok" id="doneBtn">ดูจบแล้ว</button><button type="button" class="btn danger" id="dropBtn">เลิกดู</button></div>
+  </div>
+</form></dialog>
+
+<dialog id="confirmDlg"><div class="dlg">
+  <h2 id="cfTitle">ลบถาวร</h2>
+  <p id="cfText" style="margin:0 0 8px;color:var(--muted)"></p>
+  <div class="dlg-foot"><button class="btn" id="cfNo">ยกเลิก</button><button class="btn danger" id="cfYes">ลบถาวร</button></div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+const LS='am-tracker-v1';
+let state={items:[],logs:[],timer:null};
+let dbRef=null, writing=false, pending=false, saveT=null, downloads=null;
+const ui={tab:'list',filter:'all',q:'',sort:'added',dir:-1,period:'day',metric:'titles',editId:null,dlgType:'anime'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const pad=n=>String(n).padStart(2,'0');
+const dkey=t=>{const d=new Date(t);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const fdate=t=>t?new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}):'–';
+const mshort=d=>d.toLocaleDateString('th-TH',{month:'short'});
+const fmin=m=>{m=Math.round(m||0);if(m<60)return m+' นาที';const h=Math.floor(m/60),r=m%60;return h+' ชม.'+(r?' '+r+' นาที':'')};
+const unit=t=>t==='manga'?'แชปเตอร์':'ตอน';
+const kindName=t=>t==='manga'?'มังงะ':'อนิเมะ';
+const statusName={active:'กำลังติดตาม',done:'ดูจบแล้ว',dropped:'เลิกดู'};
+
+function normalize(s){
+  s=s&&typeof s==='object'?s:{};
+  return {items:Array.isArray(s.items)?s.items:[],logs:Array.isArray(s.logs)?s.logs:[],timer:s.timer&&s.timer.id?s.timer:null};
+}
+function load(){try{const r=localStorage.getItem(LS);if(r)state=normalize(JSON.parse(r))}catch(e){}}
+function save(){
+  try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}
+  if(!dbRef)return;
+  clearTimeout(saveT);saveT=setTimeout(flush,600);
+}
+async function flush(){
+  if(!dbRef)return;
+  if(writing){pending=true;return}
+  writing=true;
+  try{await dbRef.set({state:JSON.stringify(state),updated:Date.now()});$('#sync').textContent='ซิงก์กับบัญชีแล้ว'}
+  catch(e){$('#sync').textContent='ซิงก์ไม่สำเร็จ ข้อมูลยังอยู่ในเครื่องนี้'}
+  writing=false;
+  if(pending){pending=false;flush()}
+}
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+
+const item=id=>state.items.find(i=>i.id===id);
+function minsOf(id){let m=state.logs.reduce((a,l)=>l.i===id?a+(l.m||0):a,0);return m}
+function epsOf(id){return state.logs.reduce((a,l)=>l.i===id?a+(l.n||0):a,0)}
+function addLog(id,n,m){state.logs.push({t:Date.now(),i:id,n:n||0,m:m||0})}
+
+/* ---------- heatmap + streak ---------- */
+function dayCounts(){const c={};for(const l of state.logs){const k=dkey(l.t);c[k]=(c[k]||0)+(l.n||0)+(l.m?Math.max(1,Math.round(l.m/20)):0)}return c}
+function streak(c){
+  let d=new Date();d.setHours(0,0,0,0);
+  if(!c[dkey(d)])d.setDate(d.getDate()-1);
+  let n=0;while(c[dkey(d)]){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+function renderHeat(){
+  const c=dayCounts();
+  const today=new Date();today.setHours(0,0,0,0);
+  const start=new Date(today);start.setDate(start.getDate()-7*52-today.getDay());
+  let html='';
+  for(let d=new Date(start);d<=today;d.setDate(d.getDate()+1)){
+    const v=c[dkey(d)]||0;const l=v===0?0:v<2?1:v<4?2:v<7?3:4;
+    html+=`<span data-l="${l}" title="${fdate(d)}: ${v?'มีกิจกรรม':'ไม่มีกิจกรรม'}"></span>`;
+  }
+  $('#heat').innerHTML=html;
+  const s=streak(c);
+  $('#streak').innerHTML=s?`<b>${s}</b>วันติดต่อกัน`:'วันนี้ยังไม่ได้บันทึก';
+  const sc=$('#heatScroll');sc.scrollLeft=sc.scrollWidth;
+}
+
+/* ---------- list ---------- */
+function renderList(){
+  const q=ui.q.trim().toLowerCase();
+  const arr=state.items.filter(i=>i.status==='active'&&(ui.filter==='all'||i.type===ui.filter)&&(!q||i.title.toLowerCase().includes(q)))
+    .sort((a,b)=>(b.touched||b.added)-(a.touched||a.added));
+  const el=$('#list');
+  if(!state.items.some(i=>i.status==='active')){
+    el.innerHTML=`<div class="empty-state">ยังไม่มีเรื่องที่ติดตาม<br>เพิ่มอนิเมะหรือมังงะเรื่องแรกเพื่อเริ่มบันทึก<br><button class="btn primary" data-act="add">เพิ่มเรื่อง</button></div>`;return;
+  }
+  if(!arr.length){el.innerHTML=`<div class="empty-state">ไม่พบเรื่องที่ตรงกับการค้นหา</div>`;return}
+  el.innerHTML=arr.map(i=>{
+    const pct=i.total?Math.min(100,Math.round(i.cur/i.total*100)):0;
+    const run=state.timer&&state.timer.id===i.id;
+    const verb=i.type==='manga'?'อ่าน':'ดู';
+    const title=i.link?`<a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.title)}</a>`:esc(i.title);
+    return `<article class="item ${i.type}" data-id="${i.id}">
+      <div class="kind">${kindName(i.type)}</div>
+      <h3>${title}</h3>
+      <div class="prog">${unit(i.type)}ที่ ${i.cur}${i.total?' จาก '+i.total:''}${i.total?`<div class="bar"><i style="width:${pct}%"></i></div>`:''}</div>
+      <div class="meta"><span>เริ่ม ${fdate(i.added)}</span><span>ใช้เวลา ${fmin(minsOf(i.id))}</span>${i.note?`<span>${esc(i.note)}</span>`:''}</div>
+      <div class="actions">
+        <button class="btn small primary" data-act="plus">+1 ${unit(i.type)}</button>
+        <button class="btn small ${run?'running':''}" data-act="timer">${run?`หยุด <span data-tick>${tickText()}</span>`:'เริ่ม'+verb}</button>
+        <button class="btn small" data-act="edit">แก้ไข</button>
+      </div></article>`}).join('');
+}
+function tickText(){if(!state.timer)return'';const s=Math.floor((Date.now()-state.timer.start)/1000);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+':'+pad(m):m)+':'+pad(x)}
+setInterval(()=>{document.querySelectorAll('[data-tick]').forEach(e=>e.textContent=tickText())},1000);
+
+function stopTimer(silent){
+  const t=state.timer;if(!t)return;
+  const m=Math.max(1,Math.round((Date.now()-t.start)/60000));
+  state.timer=null;
+  const it=item(t.id);if(it){addLog(it.id,0,m);it.touched=Date.now();if(!silent)toast('บันทึกเวลา '+fmin(m)+' ให้ '+it.title)}
+}
+
+/* ---------- table ---------- */
+function renderTable(){
+  const now=Date.now();
+  const rows=state.items.map(i=>({i,title:i.title,type:i.type,added:i.added,ended:i.ended||0,status:i.status,days:Math.max(1,Math.ceil(((i.ended||now)-i.added)/864e5)),mins:minsOf(i.id)}));
+  rows.sort((a,b)=>{const x=a[ui.sort],y=b[ui.sort];return (typeof x==='string'?x.localeCompare(y,'th'):x-y)*ui.dir});
+  document.querySelectorAll('th button').forEach(b=>{if(b.dataset.sort===ui.sort)b.dataset.dir=ui.dir>0?'▲':'▼';else delete b.dataset.dir});
+  $('#tbody').innerHTML=rows.length?rows.map(r=>`<tr><td class="title">${esc(r.title)}</td><td>${kindName(r.type)}</td><td>${fdate(r.added)}</td><td>${r.ended?fdate(r.ended):'–'}</td><td><span class="status ${r.status}">${statusName[r.status]}</span></td><td>${r.days} วัน</td><td>${fmin(r.mins)}</td></tr>`).join(''):`<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">ยังไม่มีข้อมูล เพิ่มเรื่องในแท็บกำลังติดตามก่อน</td></tr>`;
+}
+
+/* ---------- stats ---------- */
+function titlesIn(pred){const s=new Set();for(const l of state.logs)if(pred(new Date(l.t))&&item(l.i))s.add(l.i);return s.size}
+function buckets(){
+  const now=new Date();const out=[];
+  if(ui.period==='day'){for(let k=13;k>=0;k--){const d=new Date(now.getFullYear(),now.getMonth(),now.getDate()-k);out.push({key:dkey(d),label:d.getDate()+' '+mshort(d)})}}
+  else if(ui.period==='month'){for(let k=11;k>=0;k--){const d=new Date(now.getFullYear(),now.getMonth()-k,1);out.push({key:d.getFullYear()+'-'+pad(d.getMonth()+1),label:mshort(d)+' '+String(d.getFullYear()+543).slice(2)})}}
+  else{let y0=now.getFullYear();for(const l of state.logs)y0=Math.min(y0,new Date(l.t).getFullYear());y0=Math.min(y0,now.getFullYear()-2);for(let y=y0;y<=now.getFullYear();y++)out.push({key:''+y,label:''+(y+543)})}
+  return out;
+}
+function bkey(t){const d=new Date(t);return ui.period==='day'?dkey(t):ui.period==='month'?d.getFullYear()+'-'+pad(d.getMonth()+1):''+d.getFullYear()}
+function renderStats(){
+  const now=new Date();
+  const tday=titlesIn(d=>dkey(d)===dkey(now));
+  const tmon=titlesIn(d=>d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth());
+  const tyr=titlesIn(d=>d.getFullYear()===now.getFullYear());
+  const total=state.logs.reduce((a,l)=>a+(item(l.i)?(l.m||0):0),0);
+  const done=state.items.filter(i=>i.status==='done').length;
+  $('#cards').innerHTML=[
+    [tday+' เรื่อง','วันนี้'],[tmon+' เรื่อง','เดือนนี้'],[tyr+' เรื่อง','ปีนี้'],
+    [fmin(total),'เวลารวมทั้งหมด'],[done+' เรื่อง','ดูหรืออ่านจบแล้ว'],[streak(dayCounts())+' วัน','ทำต่อเนื่อง']
+  ].map(([v,l])=>`<div class="card"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  const bs=buckets();const map={};bs.forEach(b=>map[b.key]={a:0,m:0,sa:new Set(),sm:new Set()});
+  for(const l of state.logs){const it=item(l.i);if(!it)continue;const b=map[bkey(l.t)];if(!b)continue;const isM=it.type==='manga';
+    if(ui.metric==='titles')(isM?b.sm:b.sa).add(l.i);
+    else if(ui.metric==='eps'){if(isM)b.m+=l.n||0;else b.a+=l.n||0}
+    else{if(isM)b.m+=l.m||0;else b.a+=l.m||0}}
+  if(ui.metric==='titles')bs.forEach(b=>{map[b.key].a=map[b.key].sa.size;map[b.key].m=map[b.key].sm.size});
+  const max=Math.max(1,...bs.map(b=>map[b.key].a+map[b.key].m));
+  $('#chart').innerHTML=bs.map(b=>{const v=map[b.key];const sum=v.a+v.m;const h=sum/max*160;
+    return `<div class="col" title="${b.label}: อนิเมะ ${v.a}, มังงะ ${v.m}"><div class="n">${sum||''}</div><div class="stack" style="height:${Math.max(2,h)}px">${sum?`<div class="a" style="height:${v.a/sum*100}%"></div><div class="m" style="height:${v.m/sum*100}%"></div>`:''}</div><div class="x">${b.label}</div></div>`}).join('');
+  const sc=$('#chartScroll');sc.scrollLeft=sc.scrollWidth;
+
+  const top=state.items.map(i=>({i,m:minsOf(i.id),e:epsOf(i.id)})).filter(r=>r.m||r.e).sort((a,b)=>b.m-a.m||b.e-a.e).slice(0,8);
+  $('#topBody').innerHTML=top.length?top.map(r=>`<tr><td class="title">${esc(r.i.title)}</td><td>${kindName(r.i.type)}</td><td>${r.e}</td><td>${fmin(r.m)}</td></tr>`).join(''):`<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">กด +1 หรือจับเวลาเพื่อเริ่มเก็บสถิติ</td></tr>`;
+}
+
+/* ---------- history ---------- */
+function renderHistory(){
+  const arr=state.items.filter(i=>i.status!=='active').sort((a,b)=>(b.ended||0)-(a.ended||0));
+  $('#hist').innerHTML=arr.length?arr.map(i=>`<article class="item ${i.type}" data-id="${i.id}">
+    <div class="kind">${kindName(i.type)}</div><h3>${esc(i.title)}</h3>
+    <div class="meta" style="margin-top:6px"><span class="status ${i.status}">${statusName[i.status]}</span><span>${fdate(i.added)} ถึง ${fdate(i.ended)}</span><span>${unit(i.type)}ที่ ${i.cur}</span><span>ใช้เวลา ${fmin(minsOf(i.id))}</span></div>
+    <div class="actions"><button class="btn small" data-act="resume">กลับมาติดตามต่อ</button><button class="btn small danger" data-act="delete">ลบถาวร</button></div></article>`).join('')
+    :`<div class="empty-state">เรื่องที่ดูจบหรือเลิกดูจะมาอยู่ที่นี่</div>`;
+}
+
+function render(){renderHeat();if(ui.tab==='list')renderList();if(ui.tab==='table')renderTable();if(ui.tab==='stats')renderStats();if(ui.tab==='history')renderHistory()}
+function commit(){save();render()}
+
+/* ---------- dialogs ---------- */
+const dlg=$('#itemDlg'),form=$('#itemForm');
+function setDlgType(t){ui.dlgType=t;document.querySelectorAll('#typeSeg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));$('#curLbl').textContent=t==='manga'?'แชปเตอร์ล่าสุดที่อ่าน':'ตอนล่าสุดที่ดู'}
+function openItem(id){
+  ui.editId=id||null;const i=id?item(id):null;form.reset();
+  form.title.value=i?i.title:'';form.cur.value=i?i.cur:0;form.total.value=i&&i.total?i.total:'';form.link.value=i?i.link||'':'';form.note.value=i?i.note||'':'';
+  setDlgType(i?i.type:'anime');
+  $('#dlgTitle').textContent=i?'แก้ไขเรื่อง':'เพิ่มเรื่อง';$('#editExtra').hidden=!i;$('#manualMin').value='';
+  dlg.showModal();form.title.focus();
+}
+document.querySelectorAll('#typeSeg button').forEach(b=>b.onclick=()=>setDlgType(b.dataset.t));
+dlg.querySelector('[data-close]').onclick=()=>dlg.close();
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  const title=form.title.value.trim();if(!title){form.title.focus();return}
+  const data={title,type:ui.dlgType,cur:Math.max(0,parseInt(form.cur.value)||0),total:Math.max(0,parseInt(form.total.value)||0),link:/^https?:\/\//i.test(form.link.value.trim())?form.link.value.trim():'',note:form.note.value.trim()};
+  if(ui.editId){Object.assign(item(ui.editId),data);toast('บันทึกการแก้ไขแล้ว')}
+  else{state.items.push({id:uid(),...data,added:Date.now(),ended:null,status:'active'});toast('เพิ่ม '+title+' แล้ว')}
+  dlg.close();commit();
+});
+$('#addMinBtn').onclick=()=>{const m=parseInt($('#manualMin').value);if(!(m>0)){$('#manualMin').focus();return}const i=item(ui.editId);addLog(i.id,0,m);i.touched=Date.now();$('#manualMin').value='';toast('เพิ่มเวลา '+fmin(m)+' แล้ว');commit()};
+function archive(status){const i=item(ui.editId);if(state.timer&&state.timer.id===i.id)stopTimer(true);i.status=status;i.ended=Date.now();dlg.close();toast(status==='done'?'ย้าย '+i.title+' ไปที่ประวัติแล้ว':'เลิกติดตาม '+i.title+' แล้ว');commit()}
+$('#doneBtn').onclick=()=>archive('done');
+$('#dropBtn').onclick=()=>archive('dropped');
+
+const cf=$('#confirmDlg');let cfAction=null;
+function confirmDel(i){$('#cfText').textContent=`ลบ “${i.title}” พร้อมสถิติทั้งหมดของเรื่องนี้ ย้อนกลับไม่ได้`;cfAction=()=>{state.items=state.items.filter(x=>x.id!==i.id);state.logs=state.logs.filter(l=>l.i!==i.id);toast('ลบแล้ว');commit()};cf.showModal()}
+$('#cfNo').onclick=()=>cf.close();
+$('#cfYes').onclick=()=>{cf.close();cfAction&&cfAction();cfAction=null};
+
+/* ---------- events ---------- */
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  ui.tab=b.dataset.tab;document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!=='p-'+ui.tab);render();
+});
+$('#addBtn').onclick=()=>openItem();
+$('#q').oninput=e=>{ui.q=e.target.value;renderList()};
+function segBind(sel,attr,key,fn){document.querySelectorAll(sel+' button').forEach(b=>b.onclick=()=>{ui[key]=b.dataset[attr];document.querySelectorAll(sel+' button').forEach(x=>x.setAttribute('aria-pressed',x===b));fn()})}
+segBind('#filter','f','filter',renderList);
+segBind('#period','p','period',renderStats);
+segBind('#metric','m','metric',renderStats);
+document.querySelectorAll('th button').forEach(b=>b.onclick=()=>{if(ui.sort===b.dataset.sort)ui.dir*=-1;else{ui.sort=b.dataset.sort;ui.dir=b.dataset.sort==='title'||b.dataset.sort==='type'?1:-1}renderTable()});
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  if(b.dataset.act==='add'){openItem();return}
+  const card=b.closest('[data-id]');const i=card&&item(card.dataset.id);if(!i)return;
+  switch(b.dataset.act){
+    case 'plus':i.cur++;i.touched=Date.now();addLog(i.id,1,0);toast(i.total&&i.cur>=i.total?'ครบ '+i.total+' '+unit(i.type)+'แล้ว กดแก้ไขเพื่อย้ายไปประวัติ':i.title+' '+unit(i.type)+'ที่ '+i.cur);commit();break;
+    case 'timer':if(state.timer&&state.timer.id===i.id){stopTimer()}else{if(state.timer)stopTimer();state.timer={id:i.id,start:Date.now()};toast('เริ่มจับเวลา '+i.title)}commit();break;
+    case 'edit':openItem(i.id);break;
+    case 'resume':i.status='active';i.ended=null;i.touched=Date.now();toast('กลับมาติดตาม '+i.title+' แล้ว');commit();break;
+    case 'delete':confirmDel(i);break;
+  }
+});
+
+$('#exportBtn').onclick=async()=>{
+  const data=JSON.stringify(state,null,2);const name='anime-manga-backup-'+dkey(Date.now())+'.json';
+  if(downloads){try{await downloads.save({filename:name,data});return}catch(e){if(e&&e.code==='user_declined')return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+};
+$('#importFile').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{const s=normalize(JSON.parse(await f.text()));if(!s.items.length&&!s.logs.length)throw 0;state=s;toast('นำเข้า '+s.items.length+' เรื่องแล้ว');commit()}
+  catch(_){toast('ไฟล์นี้ไม่ใช่ไฟล์สำรองของแอปนี้')}
+  e.target.value='';
+};
+
+/* ---------- boot ---------- */
+load();render();
+(async()=>{
+  if(typeof window.claude==='undefined'||!window.claude||!window.claude.use)return;
+  try{
+    downloads=await window.claude.use('downloads');
+    if(!downloads)$('#exportBtn').hidden=true;
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    dbRef=db.collection('data/users/'+id).doc('tracker');
+    const snap=await dbRef.get();
+    if(snap.exists){const d=snap.data();try{state=normalize(JSON.parse(d.state));try{localStorage.setItem(LS,JSON.stringify(state))}catch(e){}render()}catch(e){}}
+    else if(state.items.length){await flush()}
+    $('#sync').textContent='ซิงก์กับบัญชีแล้ว';
+  }catch(e){dbRef=null}
+})();
+})();
+</script>
+</body>
+</html>
